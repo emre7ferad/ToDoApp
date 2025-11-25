@@ -19,6 +19,10 @@
     "formik": "^2.4.9",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "@fontsource/roboto": "^5.2.8",
+    "@reduxjs/toolkit": "^2.10.1",
+    "axios": "^1.13.2",
+    "react-redux": "^9.2.0",
     "react-router-dom": "^7.9.6",
     "yup": "^1.7.1"
   },
