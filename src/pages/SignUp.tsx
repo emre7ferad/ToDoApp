@@ -1,4 +1,3 @@
-
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
@@ -12,6 +11,9 @@ import MuiCard from '@mui/material/Card';
 import { styled } from '@mui/material/styles';
 import { useFormik } from 'formik';
 import { basicSchema } from '../schemas';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../supabase-client';
+import { useNavigate } from 'react-router-dom';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -55,16 +57,39 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
   },
 }));
 
-export function SignUp() {
-    const { values, handleBlur, handleChange, handleSubmit, touched, errors } = useFormik({
+export const SignUp = () => {
+    const { signUpNewUser } = useAuth();
+    const navigate = useNavigate();
+
+    const { values, handleBlur, handleChange, handleSubmit, touched, errors, setErrors } = useFormik({
         initialValues: {
             email: "",
             password: "",
-            confrimPassword: "",
+            confirmPassword: "",
         },
         validationSchema: basicSchema,
-        onSubmit: (values) => {
-            console.log(values);
+        onSubmit: async (values) => {
+            try {
+                const { data: emailExists, error: rpcError } = await supabase
+                    .rpc('check_email_exists', { email_to_check: values.email});
+                if (rpcError) console.error("RPC error:", rpcError);
+
+                if (emailExists) {
+                    setErrors({ email: "An account with this email already exists" });
+                    return;
+                }
+
+                const { error } = await signUpNewUser(values.email, values.password);
+
+                if (error) {
+                    alert("Registration failed: " + error.message);
+                } else {
+                    alert("Your account has been created!");
+                    navigate('/sign-in');
+                }
+            } catch (err) {
+                console.error("An unexpected error occurred:", err);
+            }
         },
     });
 
@@ -118,17 +143,17 @@ export function SignUp() {
                 <FormLabel>Confirm Password</FormLabel>
                 <TextField
                     fullWidth
-                    name="confrimPassword"
+                    name="confirmPassword"
                     placeholder="••••••"
                     type="password"
                     variant="outlined"
-                    value={values.confrimPassword}
+                    value={values.confirmPassword}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    error={touched.confrimPassword && Boolean(errors.confrimPassword)}
+                    error={touched.confirmPassword && Boolean(errors.confirmPassword)}
                 />
             </FormControl>
-            {errors.confrimPassword && touched.confrimPassword && <Typography color="error" variant="body2">{errors.confrimPassword}</Typography>}
+            {errors.confirmPassword && touched.confirmPassword && <Typography color="error" variant="body2">{errors.confirmPassword}</Typography>}
             <Button
               type="submit"
               fullWidth
