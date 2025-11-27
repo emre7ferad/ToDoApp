@@ -9,7 +9,7 @@ export const basicSchema = yup.object().shape({
     .min(8, "Password must be at least 8 characters")
     .matches(passwordRules, {message: "Password must contain at least one uppercase, one lowercase, and one number"})
     .required(),
-  confrimPassword: yup
+  confirmPassword: yup
     .string()
     .oneOf([yup.ref('password'), undefined], 'Passwords don\'t   match')
     .required('Confirm Password is required'),

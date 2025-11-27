@@ -106,6 +106,7 @@ export function SignIn() {
                 placeholder="your@email.com"
                 fullWidth
                 variant="outlined"
+                required
               />
             </FormControl>
             <FormControl>
@@ -120,6 +121,7 @@ export function SignIn() {
                 type="password"
                 fullWidth
                 variant="outlined"
+                required
               />
             </FormControl>
             <FormControlLabel
