@@ -158,6 +158,7 @@ export const SignUp = () => {
               type="submit"
               fullWidth
               variant="contained"
+              sx={{padding: 1.5}}
             >
               Sign up
             </Button>

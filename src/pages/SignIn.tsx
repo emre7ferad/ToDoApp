@@ -1,8 +1,6 @@
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Checkbox from '@mui/material/Checkbox';
 import CssBaseline from '@mui/material/CssBaseline';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import Divider from '@mui/material/Divider';
 import FormLabel from '@mui/material/FormLabel';
 import FormControl from '@mui/material/FormControl';
@@ -13,7 +11,9 @@ import Stack from '@mui/material/Stack';
 import MuiCard from '@mui/material/Card';
 import { styled } from '@mui/material/styles';
 import { useFormik } from 'formik';
-import { basicSchema } from '../schemas';
+import { signInSchema } from '../schemas';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -58,17 +58,30 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
 }));
 
 export function SignIn() {
+  const { signInUser } = useAuth();
+  const navigate = useNavigate();
 
-    const { values, handleBlur, handleChange, handleSubmit, errors, touched} = useFormik({
-        initialValues: {
-            email: '',
-            password: '',
-        },
-        validationSchema: basicSchema,
-        onSubmit: (values) => {
-            console.log(values);
-        },
-    });
+  const { values, handleBlur, handleChange, handleSubmit, errors, touched} = useFormik({
+      initialValues: {
+          email: '',
+          password: '',
+      },
+      validationSchema: signInSchema,
+      onSubmit: async (values) => {
+        try {
+          const { error } = await signInUser(values.email, values.password);
+
+          if (error) {
+            alert("Login failed: " + error.message);
+          } else {
+            navigate('/dashboard');
+          }
+        } catch (err) {
+          console.error("Sign-in error:", err);
+          alert("An unexpected error occurred. Please try again.");
+        }
+      },
+  });
 
   return (
     <>
@@ -100,7 +113,7 @@ export function SignIn() {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={touched.email && Boolean(errors.email)}
-                helperText={errors.email}
+                helperText={touched.email && errors.email}
                 type="email"
                 name="email"
                 placeholder="your@email.com"
@@ -116,6 +129,7 @@ export function SignIn() {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={touched.password && Boolean(errors.password)}
+                helperText={touched.password && errors.password}
                 name="password"
                 placeholder="••••••"
                 type="password"
@@ -124,14 +138,11 @@ export function SignIn() {
                 required
               />
             </FormControl>
-            <FormControlLabel
-              control={<Checkbox value="remember" color="primary" />}
-              label="Remember me"
-            />
             <Button
               type="submit"
               fullWidth
               variant="contained"
+              sx={{padding: 1.5}}
             >
               Sign in
             </Button>
