@@ -7,6 +7,7 @@ import { SignIn } from './pages/SignIn';
 import { Navbar } from './components/Navbar';
 import { Dashboard } from './pages/Dashboard';
 import { AllTasks } from './pages/AllTasks';
+import { Goals } from './pages/Goals';
 
 function App() {
 
@@ -33,6 +34,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <AllTasks/>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="/goals" 
+            element={
+              <ProtectedRoute>
+                <Goals/>
               </ProtectedRoute>
             }
           />
