@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 // 1. Redux Imports
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchTasks } from '../store/tasksSlice';
-import type { RootState } from '../store/store';
-import type { AppDispatch } from '../store/store';
+import { fetchTasks, addTask } from '../store/tasksSlice'; // Import addTask
+import { fetchGoals } from '../store/goalsSlice'; // Import fetchGoals for the dropdown
+import type { RootState, AppDispatch } from '../store/store';
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -27,22 +27,41 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
 import CircularProgress from '@mui/material/CircularProgress';
+import FormHelperText from '@mui/material/FormHelperText';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 
 export const AllTasks = () => {
     const dispatch = useDispatch<AppDispatch>();
     
-    // 2. Select Real Data from Redux
     const { items: tasks, loading, error } = useSelector((state: RootState) => state.tasks);
+    const { items: goals } = useSelector((state: RootState) => state.goals);
 
-    // Local UI state for filters
     const [statusFilter, setStatusFilter] = useState('');
     const [priorityFilter, setPriorityFilter] = useState('');
 
-    // 3. Fetch Data on Mount
+    const [open, setOpen] = useState(false);
+    const [newTask, setNewTask] = useState({
+        title: '',
+        description: '',
+        due_date: '',
+        priority: '',
+        status: '',
+        goal_id: ''
+    });
+
+    const [formErrors, setFormErrors] = useState({
+        title: false,
+        priority: false,
+        goal_id: false
+    });
+
     useEffect(() => {
         dispatch(fetchTasks());
+        dispatch(fetchGoals());
     }, [dispatch]);
 
     const handleStatusChange = (event: SelectChangeEvent) => {
@@ -53,8 +72,40 @@ export const AllTasks = () => {
         setPriorityFilter(event.target.value as string);
     };
 
+    const handleClickOpen = () => setOpen(true);
+    const handleClose = () => {
+        setOpen(false);
+        setFormErrors({ title: false, priority: false, goal_id: false });
+        setNewTask({ title: '', description: '', due_date: '', priority: '', status: '', goal_id: '' });
+    };
+
+    const handleCreateTask = async () => {
+        const errors = {
+            title: !newTask.title.trim(),
+            priority: !newTask.priority,
+            goal_id: !newTask.goal_id
+        };
+
+        setFormErrors(errors);
+
+        if (errors.title || errors.priority || errors.goal_id) {
+            return; 
+        }
+
+        const taskData: any = {
+            title: newTask.title,
+            description: newTask.description,
+            due_date: newTask.due_date || null,
+            priority: newTask.priority,
+            status: newTask.status,
+            goal_id: Number(newTask.goal_id)
+        };
+
+        await dispatch(addTask(taskData));
+        handleClose();
+    };
+
     const getPriorityColor = (priority: string) => {
-        // Safe check with optional chaining
         switch (priority?.toLowerCase()) {
             case 'high': return 'error';
             case 'medium': return 'warning';
@@ -63,8 +114,7 @@ export const AllTasks = () => {
         }
     };
 
-    // 4. Handle Loading & Error States
-    if (loading) {
+    if (loading && tasks.length === 0) {
         return (
              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4, mt: 5 }}>
                 <CircularProgress />
@@ -87,6 +137,7 @@ export const AllTasks = () => {
                 <Button 
                     variant="contained" 
                     startIcon={<AddIcon />}
+                    onClick={handleClickOpen}
                     sx={{ textTransform: 'none', borderRadius: 2 }}
                 >
                     New Task
@@ -96,8 +147,17 @@ export const AllTasks = () => {
             {/* Filters Bar */}
             <Paper sx={{ p: 2, mb: 3, borderRadius: 2, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }} elevation={0}>
                 <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <InputLabel>Status</InputLabel>
-                    <Select value={statusFilter} label="Status" onChange={handleStatusChange}>
+                    <Select 
+                        value={statusFilter} 
+                        onChange={handleStatusChange}
+                        displayEmpty
+                        renderValue={(selected) => {
+                            if (selected.length === 0) {
+                                return <em style={{ color: "gray", fontStyle: "normal" }}>Status</em>;
+                            }
+                            return selected;
+                        }}
+                    >
                         <MenuItem value=""><em>None</em></MenuItem>
                         <MenuItem value="To Do">To Do</MenuItem>
                         <MenuItem value="In Progress">In Progress</MenuItem>
@@ -106,8 +166,17 @@ export const AllTasks = () => {
                 </FormControl>
 
                 <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <InputLabel>Priority</InputLabel>
-                    <Select value={priorityFilter} label="Priority" onChange={handlePriorityChange}>
+                    <Select 
+                        value={priorityFilter} 
+                        onChange={handlePriorityChange}
+                        displayEmpty
+                        renderValue={(selected) => {
+                            if (selected.length === 0) {
+                                return <em style={{ color: "gray", fontStyle: "normal" }}>Priority</em>;
+                            }
+                            return selected;
+                        }}
+                    >
                         <MenuItem value=""><em>None</em></MenuItem>
                         <MenuItem value="Low">Low</MenuItem>
                         <MenuItem value="Medium">Medium</MenuItem>
@@ -141,7 +210,6 @@ export const AllTasks = () => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {/* 5. Render Real Data */}
                         {tasks.length > 0 ? (
                             tasks.map((task) => (
                                 <TableRow key={task.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
@@ -164,7 +232,6 @@ export const AllTasks = () => {
                                         </Box>
                                     </TableCell>
                                     <TableCell>
-                                        {/* Display Goal Title if available */}
                                         {task.goals?.title || <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>No Goal</Typography>}
                                     </TableCell>
                                     <TableCell align="right">
@@ -183,6 +250,111 @@ export const AllTasks = () => {
                     </TableBody>
                 </Table>
             </TableContainer>
+
+            {/* Create Task Modal */}
+            <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+                <DialogTitle>Add New Task</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                        <TextField 
+                            label="Title" 
+                            fullWidth 
+                            variant="outlined" 
+                            required
+                            error={formErrors.title}
+                            helperText={formErrors.title ? "Title is required" : ""}
+                            value={newTask.title} 
+                            onChange={(e) => setNewTask({...newTask, title: e.target.value})} 
+                        />
+                        <TextField 
+                            label="Description" 
+                            fullWidth 
+                            multiline 
+                            rows={2} 
+                            variant="outlined" 
+                            value={newTask.description} 
+                            onChange={(e) => setNewTask({...newTask, description: e.target.value})} 
+                        />
+                        
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                            <TextField 
+                                label="Due Date" 
+                                type="date" 
+                                fullWidth 
+                                InputLabelProps={{ shrink: true }} 
+                                value={newTask.due_date} 
+                                onChange={(e) => setNewTask({...newTask, due_date: e.target.value})} 
+                            />
+                            
+                            <FormControl fullWidth error={formErrors.priority}>
+                                <Select 
+                                    value={newTask.priority} 
+                                    onChange={(e) => setNewTask({...newTask, priority: e.target.value})}
+                                    displayEmpty
+                                    renderValue={(selected) => {
+                                        if (selected.length === 0) {
+                                            return <em style={{ color: "gray", fontStyle: "normal" }}>Priority *</em>;
+                                        }
+                                        return selected;
+                                    }}
+                                >
+                                    <MenuItem value="Low">Low</MenuItem>
+                                    <MenuItem value="Medium">Medium</MenuItem>
+                                    <MenuItem value="High">High</MenuItem>
+                                </Select>
+                                {formErrors.priority && <FormHelperText>Priority is required</FormHelperText>}
+                            </FormControl>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                            <FormControl fullWidth>
+                                <Select 
+                                    value={newTask.status} 
+                                    onChange={(e) => setNewTask({...newTask, status: e.target.value})}
+                                    displayEmpty
+                                    renderValue={(selected) => {
+                                        if (selected.length === 0) {
+                                            return <em style={{ color: "gray", fontStyle: "normal" }}>Status</em>;
+                                        }
+                                        return selected;
+                                    }}
+                                >
+                                    <MenuItem value="To Do">To Do</MenuItem>
+                                    <MenuItem value="In Progress">In Progress</MenuItem>
+                                    <MenuItem value="Completed">Completed</MenuItem>
+                                </Select>
+                            </FormControl>
+
+                            <FormControl fullWidth error={formErrors.goal_id}>
+                                <Select 
+                                    value={newTask.goal_id} 
+                                    onChange={(e) => setNewTask({...newTask, goal_id: e.target.value})}
+                                    displayEmpty
+                                    renderValue={(selected) => {
+                                        if (selected === '' || selected === undefined) {
+                                            return <em style={{ color: "gray", fontStyle: "normal" }}>Linked Goal *</em>;
+                                        }
+                                        const selectedGoal = goals.find(g => g.id === Number(selected));
+                                        return selectedGoal ? selectedGoal.title : <em>Linked Goal *</em>;
+                                    }}
+                                >
+                                    <MenuItem value=""><em>None</em></MenuItem>
+                                    {goals.map((goal) => (
+                                        <MenuItem key={goal.id} value={goal.id}>
+                                            {goal.title}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                                {formErrors.goal_id && <FormHelperText>Linked Goal is required</FormHelperText>}
+                            </FormControl>
+                        </Box>
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleClose}>Cancel</Button>
+                    <Button onClick={handleCreateTask} variant="contained">Create Task</Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };
