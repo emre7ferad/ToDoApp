@@ -24,3 +24,12 @@ export const signInSchema = yup.object().shape({
     .string()
     .required("Password is required"),
 });
+
+export const taskSchema = yup.object().shape({
+  title: yup.string().required("Title is required"),
+  descrition: yup.string(),
+  due_date: yup.string(),
+  priority: yup.string().required("Priority is required"),
+  status: yup.string(),
+  goal_id: yup.string().required("Linked Goal is required"),
+})
