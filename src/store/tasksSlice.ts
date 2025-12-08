@@ -74,6 +74,44 @@ export const addTask = createAsyncThunk(
   }
 );
 
+
+export const updateTask = createAsyncThunk(
+    'tasks/updateTask',
+    async ( { id, updates } : { id: number; updates: Partial<Task> }, { rejectWithValue } ) => {
+        try {
+            const { data, error } = await supabase
+                .from('tasks')
+                .update(updates)
+                .eq('id', id)
+                .select(`*, goals (title)`)
+                .single();
+
+            if (error) throw error;
+            return data as Task;
+        } catch (error: any) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
+export const deleteTask = createAsyncThunk(
+    'tasks/deleteTask',
+    async (id: number, { rejectWithValue }) => {
+        try {
+            const { error } = await supabase
+                .from('tasks')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            return id;
+        } catch (error: any) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
+
 const tasksSlice = createSlice({
   name: 'tasks',
   initialState,
@@ -102,6 +140,15 @@ const tasksSlice = createSlice({
       })
       .addCase(addTask.rejected, (state, action) => {
         state.error = action.payload as string;
+      })
+      .addCase(updateTask.fulfilled, (state, action) => {
+        const index = state.items.findIndex((t) => t.id === action.payload.id);
+        if (index !== -1) {
+            state.items[index] = action.payload;
+        }
+      })
+      .addCase(deleteTask.fulfilled, (state, action) => {
+        state.items = state.items.filter((t) => t.id !== action.payload);
       });
   },
 });
